@@ -1,0 +1,9 @@
+{
+  "name": "action-finder",
+  "version": "1.0.0",
+  "description": "Action Finder - Real-time hand action detection and recognition",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx -y serve . -l 8000"
+  }
+}

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ആക്ഷൻ ഫൈൻഡർ | Action Finder - Dashboard</title>
+    <meta name="description" content="Real-time hand action detection with exactly 29 hand gestures in Malayalam and English using AI 21 hand landmarks.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+    <!-- Background -->
+    <div class="bg-subtle">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+    </div>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav" id="topNav">
+        <div class="nav-left">
+            <div class="nav-logo">🎬</div>
+            <div class="nav-brand">
+                <span class="nav-title">Action Finder</span>
+                <span class="nav-subtitle">ആക്ഷൻ ഫൈൻഡർ</span>
+            </div>
+        </div>
+        <div class="nav-center">
+            <div class="status-badge" id="statusBadge">
+                <span class="status-dot"></span>
+                <span class="status-text">Initializing...</span>
+            </div>
+        </div>
+        <div class="nav-right">
+            <div class="user-info">
+                <span class="user-icon">👤</span>
+                <span class="user-name" id="userName">User</span>
+            </div>
+            <button class="logout-btn" id="logoutBtn" onclick="handleLogout()">
+                <span>Logout</span>
+                <span>🚪</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Left Panel: Camera & Detection -->
+        <div class="camera-panel">
+            <!-- Camera View -->
+            <div class="camera-container" id="cameraContainer">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="poseCanvas"></canvas>
+                
+                <!-- Camera Overlay UI -->
+                <div class="camera-overlay">
+                    <div class="corner-bracket top-left"></div>
+                    <div class="corner-bracket top-right"></div>
+                    <div class="corner-bracket bottom-left"></div>
+                    <div class="corner-bracket bottom-right"></div>
+                </div>
+
+                <!-- Detection Result Overlay -->
+                <div class="detection-overlay" id="detectionOverlay">
+                    <div class="detected-action-badge">
+                        <span class="action-emoji" id="actionEmoji">⏸️</span>
+                        <div class="action-names">
+                            <span class="action-malayalam" id="actionMalayalam">ആക്ഷൻ ഇല്ല</span>
+                            <span class="action-english" id="actionEnglish">No Action</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Loading -->
+                <div class="camera-loading" id="cameraLoading">
+                    <div class="loading-spinner-large"></div>
+                    <p class="loading-text">Starting Hand Vision Engine...</p>
+                    <p class="loading-subtext">കൈ ആംഗ്യ AI വിഷൻ ആരംഭിക്കുന്നു</p>
+                    <div class="loading-progress">
+                        <div class="loading-progress-bar" id="loadingBar"></div>
+                    </div>
+                </div>
+
+                <!-- Camera Permission -->
+                <div class="camera-permission" id="cameraPermission" style="display:none;">
+                    <button class="permission-btn" onclick="startCamera()">
+                        Allow Camera Access
+                    </button>
+                </div>
+
+                <!-- Debug Information HUD Overlay -->
+                <div class="debug-hud" id="debugHud">
+                    <div class="debug-header">
+                        <span class="debug-title">🛠️ HAND TELEMETRY</span>
+                        <span class="debug-live-dot"></span>
+                    </div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Hands Detected:</span>
+                        <span class="debug-val" id="dbgHandsCount">0</span>
+                    </div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Left Hand:</span>
+                        <span class="debug-val" id="dbgLeftPresent">NO</span>
+                        <span class="debug-sep">|</span>
+                        <span class="debug-lbl">Right Hand:</span>
+                        <span class="debug-val" id="dbgRightPresent">NO</span>
+                    </div>
+                    <div class="debug-divider"></div>
+                    <div class="debug-subtitle">Finger States:</div>
+                    <div class="debug-grid">
+                        <div class="dbg-finger-item"><span class="dbg-f-name">Thumb:</span> <span id="dbgThumb" class="dbg-state">-</span></div>
+                        <div class="dbg-finger-item"><span class="dbg-f-name">Index:</span> <span id="dbgIndex" class="dbg-state">-</span></div>
+                        <div class="dbg-finger-item"><span class="dbg-f-name">Middle:</span> <span id="dbgMiddle" class="dbg-state">-</span></div>
+                        <div class="dbg-finger-item"><span class="dbg-f-name">Ring:</span> <span id="dbgRing" class="dbg-state">-</span></div>
+                        <div class="dbg-finger-item"><span class="dbg-f-name">Pinky:</span> <span id="dbgPinky" class="dbg-state">-</span></div>
+                    </div>
+                    <div class="debug-divider"></div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Palm Orientation:</span>
+                        <span class="debug-val highlight" id="dbgPalmOrientation">None</span>
+                    </div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Hand Position:</span>
+                        <span class="debug-val highlight" id="dbgHandPosition">None</span>
+                    </div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Gesture Candidate:</span>
+                        <span class="debug-val" id="dbgCandidate">None</span>
+                    </div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Confirmed Gesture:</span>
+                        <span class="debug-val success" id="dbgConfirmed">No Action</span>
+                    </div>
+                    <div class="debug-row">
+                        <span class="debug-lbl">Temporal Stability:</span>
+                        <span class="debug-val" id="dbgTemporalStability">0/3</span>
+                        <span class="debug-sep">|</span>
+                        <span class="debug-lbl">Confidence:</span>
+                        <span class="debug-val" id="dbgConfidence">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Controls -->
+            <div class="camera-controls">
+                <button class="control-btn" id="toggleCameraBtn" onclick="toggleCamera()">
+                    <span id="cameraIcon">📹</span>
+                    <span id="cameraLabel">Camera On</span>
+                </button>
+                <button class="control-btn" id="toggleSkeletonBtn" onclick="toggleVisualHUD()">
+                    <span>🎯</span>
+                    <span>Visual HUD</span>
+                </button>
+                <button class="control-btn" id="toggleDebugBtn" onclick="toggleDebugHud()">
+                    <span>🛠️</span>
+                    <span>Debug HUD</span>
+                </button>
+                <button class="control-btn" id="openActionBookBtn" onclick="switchTab('actions')">
+                    <span>📖</span>
+                    <span>Action Book</span>
+                </button>
+                <button class="control-btn" id="screenshotBtn" onclick="takeScreenshot()">
+                    <span>📸</span>
+                    <span>Capture</span>
+                </button>
+                <button class="control-btn" id="toggleMirrorBtn" onclick="toggleMirror()">
+                    <span>🪞</span>
+                    <span>Mirror</span>
+                </button>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <span class="stat-value" id="fpsValue">0</span>
+                    <span class="stat-label">FPS</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="keypointsValue">0%</span>
+                    <span class="stat-label">Confidence</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="detectionsValue">0</span>
+                    <span class="stat-label">Detections</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="actionStateValue">Ready</span>
+                    <span class="stat-label">System State</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Action List & History -->
+        <div class="side-panel">
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="history" onclick="switchTab('history')">
+                    📜 History
+                </button>
+                <button class="tab-btn" data-tab="actions" onclick="switchTab('actions')">
+                    📖 Action Book
+                </button>
+                <button class="tab-btn" data-tab="search" onclick="switchTab('search')">
+                    🔍 Search
+                </button>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-content active" id="historyTab">
+                <div class="section-header">
+                    <h3>Detection History</h3>
+                    <button class="clear-btn" onclick="clearHistory()">Clear All</button>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state">
+                        <span class="empty-icon">📹</span>
+                        <p>Start the camera to detect actions</p>
+                        <p class="empty-sub">ആക്ഷനുകൾ തിരിച്ചറിയാൻ ക്യാമറ ആരംഭിക്കുക</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Book Tab -->
+            <div class="tab-content" id="actionsTab">
+                <div class="action-book-header-banner">
+                    <div class="action-book-title-group">
+                        <div class="action-book-badge">REFERENCE MANUAL</div>
+                        <h3 class="action-book-main-title">📖 Registered Action Book</h3>
+                        <p class="action-book-subtitle">ആക്ഷൻ റഫറൻസ് ബുക്ക് (28 കൈ ആംഗ്യങ്ങൾ)</p>
+                    </div>
+                    <div class="action-book-count-pill" id="actionCount">28 Actions</div>
+                </div>
+                <p class="action-book-instructions">
+                    ക്യാമറയിൽ കാണിക്കാവുന്ന 28 ലളിതമായ കൈ ആംഗ്യങ്ങളുടെ ഔദ്യോഗിക പട്ടിക താഴെ നൽകിയിരിക്കുന്നു. ഓരോ ആംഗ്യത്തിന്റെയും ശരിയായ വിരൽ വിന്യാസങ്ങൾ റഫറൻസിനായി വായിക്കാം.
+                </p>
+                <div class="category-filters" id="categoryFilters"></div>
+                <div class="actions-grid action-book-grid" id="actionsGrid"></div>
+            </div>
+
+            <!-- Search Tab -->
+            <div class="tab-content" id="searchTab">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search actions... / ആക്ഷൻ തിരയുക..." oninput="searchActions()">
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div class="empty-state">
+                        <span class="empty-icon">🔍</span>
+                        <p>Type to search actions</p>
+                        <p class="empty-sub">ഇംഗ്ലീഷിലോ മലയാളത്തിലോ തിരയുക</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Action Book Detail Modal -->
+    <div class="modal-overlay" id="actionDetailModal" style="display:none;">
+        <div class="modal-card action-detail-card">
+            <div class="modal-header">
+                <div class="action-modal-title-wrap">
+                    <span class="action-modal-emoji" id="modalEmoji">✋</span>
+                    <div>
+                        <h3 id="modalEnglish">Raise Right Hand</h3>
+                        <p id="modalMalayalam">വലത് കൈ ഉയർത്തുക</p>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeActionDetailModal()">✕</button>
+            </div>
+            <div class="modal-body action-modal-body">
+                <div class="action-modal-section">
+                    <span class="modal-sec-title">📖 വിവരണം / Meaning</span>
+                    <p id="modalMeaning" class="modal-desc-text"></p>
+                </div>
+                <div class="action-modal-section">
+                    <span class="modal-sec-title">🖐️ ചെയ്യേണ്ട വിധം / How to Perform</span>
+                    <p id="modalHowToML" class="modal-highlight-text"></p>
+                    <p id="modalHowToEN" class="modal-sub-text"></p>
+                </div>
+                <div class="action-modal-section">
+                    <span class="modal-sec-title">🎯 വിരൽ വിന്യാസം / Finger Posture</span>
+                    <p id="modalPostureML" class="modal-highlight-text"></p>
+                    <p id="modalPostureEN" class="modal-sub-text"></p>
+                </div>
+                <div class="action-modal-meta">
+                    <span class="action-modal-cat" id="modalCategory">Hand Elevations</span>
+                    <span class="action-modal-num" id="modalNumber">Action #1</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn primary" onclick="closeActionDetailModal()">Close / അടയ്ക്കുക</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screenshot Modal -->
+    <div class="modal-overlay" id="screenshotModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>📸 Screenshot Captured</h3>
+                <button class="modal-close" onclick="closeScreenshotModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <img id="screenshotImage" class="screenshot-preview" alt="Screenshot">
+                <div class="screenshot-info" id="screenshotInfo"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" onclick="closeScreenshotModal()">Close</button>
+                <button class="modal-btn primary" onclick="downloadScreenshot()">💾 Download</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MediaPipe Hands & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+
+    <script src="actions.js?v=5"></script>
+    <script src="detector.js?v=5"></script>
+    <script src="app.js?v=5"></script>
+</body>
+</html>
